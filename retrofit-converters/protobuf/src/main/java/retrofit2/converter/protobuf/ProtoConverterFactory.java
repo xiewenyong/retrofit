@@ -15,11 +15,15 @@
  */
 package retrofit2.converter.protobuf;
 
+import com.google.protobuf.ExtensionRegistryLite;
 import com.google.protobuf.MessageLite;
 import com.google.protobuf.Parser;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import javax.annotation.Nullable;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import retrofit2.Converter;
@@ -33,12 +37,22 @@ import retrofit2.Retrofit;
  */
 public final class ProtoConverterFactory extends Converter.Factory {
   public static ProtoConverterFactory create() {
-    return new ProtoConverterFactory();
+    return new ProtoConverterFactory(null);
   }
 
-  @Override
-  public Converter<ResponseBody, ?> responseBodyConverter(Type type, Annotation[] annotations,
-      Retrofit retrofit) {
+  /** Create an instance which uses {@code registry} when deserializing. */
+  public static ProtoConverterFactory createWithRegistry(@Nullable ExtensionRegistryLite registry) {
+    return new ProtoConverterFactory(registry);
+  }
+
+  private final @Nullable ExtensionRegistryLite registry;
+
+  private ProtoConverterFactory(@Nullable ExtensionRegistryLite registry) {
+    this.registry = registry;
+  }
+
+  @Override public @Nullable Converter<ResponseBody, ?> responseBodyConverter(
+      Type type, Annotation[] annotations, Retrofit retrofit) {
     if (!(type instanceof Class<?>)) {
       return null;
     }
@@ -49,18 +63,27 @@ public final class ProtoConverterFactory extends Converter.Factory {
 
     Parser<MessageLite> parser;
     try {
-      Field field = c.getDeclaredField("PARSER");
+      Method method = c.getDeclaredMethod("parser");
       //noinspection unchecked
-      parser = (Parser<MessageLite>) field.get(null);
-    } catch (NoSuchFieldException | IllegalAccessException e) {
-      throw new IllegalArgumentException(
-          "Found a protobuf message but " + c.getName() + " had no PARSER field.");
+      parser = (Parser<MessageLite>) method.invoke(null);
+    } catch (InvocationTargetException e) {
+      throw new RuntimeException(e.getCause());
+    } catch (NoSuchMethodException | IllegalAccessException ignored) {
+      // If the method is missing, fall back to original static field for pre-3.0 support.
+      try {
+        Field field = c.getDeclaredField("PARSER");
+        //noinspection unchecked
+        parser = (Parser<MessageLite>) field.get(null);
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+        throw new IllegalArgumentException("Found a protobuf message but "
+            + c.getName()
+            + " had no parser() method or PARSER field.");
+      }
     }
-    return new ProtoResponseBodyConverter<>(parser);
+    return new ProtoResponseBodyConverter<>(parser, registry);
   }
 
-  @Override
-  public Converter<?, RequestBody> requestBodyConverter(Type type,
+  @Override public @Nullable Converter<?, RequestBody> requestBodyConverter(Type type,
       Annotation[] parameterAnnotations, Annotation[] methodAnnotations, Retrofit retrofit) {
     if (!(type instanceof Class<?>)) {
       return null;

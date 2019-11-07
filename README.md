@@ -9,23 +9,21 @@ For more information please see [the website][1].
 Download
 --------
 
-Download [the latest JAR][2] or grab via Maven:
-```xml
-<dependency>
-  <groupId>com.squareup.retrofit2</groupId>
-  <artifactId>retrofit</artifactId>
-  <version>2.0.0-beta4</version>
-</dependency>
-```
-or Gradle:
-```groovy
-compile 'com.squareup.retrofit2:retrofit:2.0.0-beta4'
-```
+Download [the latest JAR][2] or grab from Maven central at the coordinates `com.squareup.retrofit2:retrofit:2.6.2`.
 
 Snapshots of the development version are available in [Sonatype's `snapshots` repository][snap].
 
-Retrofit requires at minimum Java 7 or Android 2.3.
+Retrofit requires at minimum Java 8+ or Android API 21+.
 
+
+R8 / ProGuard
+-------------
+
+If you are using R8 the shrinking and obfuscation rules are included automatically.
+
+ProGuard users must manually add the options from
+[this file](https://github.com/square/retrofit/blob/master/retrofit/src/main/resources/META-INF/proguard/retrofit2.pro).
+(Note: You might also need rules for OkHttp and Okio which are dependencies of this library)
 
 
 License
@@ -46,6 +44,6 @@ License
     limitations under the License.
 
 
- [1]: http://square.github.io/retrofit/
- [2]: https://search.maven.org/remote_content?g=com.squareup.retrofit&a=retrofit&v=LATEST
+ [1]: https://square.github.io/retrofit/
+ [2]: https://search.maven.org/remote_content?g=com.squareup.retrofit2&a=retrofit&v=LATEST
  [snap]: https://oss.sonatype.org/content/repositories/snapshots/
